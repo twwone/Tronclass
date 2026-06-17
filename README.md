@@ -28,8 +28,14 @@
 |----------|----------|----------|
 | `document.hidden` | `true`（你切走了） | 永遠 `false` |
 | `document.visibilityState` | `"hidden"` | 永遠 `"visible"` |
+| `document.hasFocus()` | `false` | 永遠 `true` |
+| `webkitHidden` / `mozHidden` | `true` | 永遠 `false` |
 | `visibilitychange` 事件 | 會觸發 | 直接擋掉 |
-| `blur` / `pagehide` 事件 | 會觸發 | 直接擋掉 |
+| `webkitvisibilitychange` 事件 | 會觸發 | 直接擋掉 |
+| `blur` 事件（window + document）| 會觸發 | 直接擋掉 |
+| `pagehide` 事件 | 會觸發 | 直接擋掉 |
+| `freeze` 事件（分頁被凍結）| 會觸發 | 直接擋掉 |
+| `mouseleave`（滑鼠移出視窗）| 會觸發 | 直接擋掉 |
 
 ---
 

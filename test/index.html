@@ -277,6 +277,10 @@
     <div class="value" id="val-focus">—</div>
   </div>
   <div class="api-card">
+    <div class="label">webkitHidden（廠商前綴）</div>
+    <div class="value" id="val-wkhidden">—</div>
+  </div>
+  <div class="api-card">
     <div class="label">visibilitychange 攔截</div>
     <div class="value" id="val-vc">等待測試...</div>
   </div>
@@ -287,6 +291,14 @@
   <div class="api-card">
     <div class="label">pagehide 事件攔截</div>
     <div class="value" id="val-ph">等待測試...</div>
+  </div>
+  <div class="api-card">
+    <div class="label">freeze 事件攔截</div>
+    <div class="value" id="val-freeze">等待測試...</div>
+  </div>
+  <div class="api-card">
+    <div class="label">mouseleave 攔截</div>
+    <div class="value" id="val-ml">把滑鼠移出視窗...</div>
   </div>
 </div>
 
@@ -446,6 +458,7 @@
     const hidden = document.hidden;
     const vis = document.visibilityState;
     const focus = document.hasFocus();
+    const wkHidden = document.webkitHidden;
 
     const hEl = document.getElementById('val-hidden');
     hEl.textContent = String(hidden);
@@ -457,7 +470,16 @@
 
     const fEl = document.getElementById('val-focus');
     fEl.textContent = String(focus);
-    fEl.className = 'value ' + (focus ? 'good' : 'warn');
+    fEl.className = 'value ' + (focus ? 'good' : 'bad');
+
+    const wkEl = document.getElementById('val-wkhidden');
+    if (wkHidden !== undefined) {
+      wkEl.textContent = String(wkHidden);
+      wkEl.className = 'value ' + (wkHidden === false ? 'good' : 'bad');
+    } else {
+      wkEl.textContent = '此瀏覽器不支援';
+      wkEl.className = 'value warn';
+    }
 
     // 情境 4 & 5
     document.getElementById('s4-result').className = 'result ' + (hidden === false ? 'pass' : 'fail');
@@ -471,12 +493,12 @@
       : `❌ 失敗：visibilityState = "${vis}"`;
 
     // 擴充套件整體狀態
-    const extActive = hidden === false && vis === 'visible';
+    const extActive = hidden === false && vis === 'visible' && focus === true;
     const statusEl = document.getElementById('ext-status');
     statusEl.className = extActive ? 'active' : 'inactive';
     document.getElementById('ext-text').textContent = extActive
-      ? '✅  Stay Visible 擴充套件已啟用，API 攔截正常'
-      : '❌  擴充套件未偵測到 — 請確認已安裝並啟用';
+      ? '✅  Stay Visible 擴充套件已啟用，全面防護正常'
+      : '❌  擴充套件未偵測到或未完全啟用 — 請確認 popup 顯示「已啟用 ✅」';
   }
 
   // ── 事件監聽（模擬 TronClass 偵測）──────────────────────────
@@ -503,29 +525,68 @@
 
   // pagehide
   window.addEventListener('pagehide', function(e) {
-    phBlocked = false;
     incrementLeave('pagehide');
     addLog('pagehide 事件觸發 → 擴充套件未攔截！', 'passed');
     document.getElementById('val-ph').textContent = '❌ 未攔截';
     document.getElementById('val-ph').className = 'value bad';
   }, false);
 
+  // freeze
+  document.addEventListener('freeze', function(e) {
+    addLog('freeze 事件觸發 → 擴充套件未攔截！', 'passed');
+    document.getElementById('val-freeze').textContent = '❌ 未攔截';
+    document.getElementById('val-freeze').className = 'value bad';
+  }, false);
+
+  // mouseleave（滑鼠真正離開視窗）
+  document.addEventListener('mouseleave', function(e) {
+    if (!e.relatedTarget) {
+      addLog('mouseleave 事件觸發（滑鼠移出視窗）→ 擴充套件未攔截！', 'passed');
+      document.getElementById('val-ml').textContent = '❌ 未攔截';
+      document.getElementById('val-ml').className = 'value bad';
+    }
+  }, false);
+
   // 若以上事件完全沒觸發，就代表被擋住了
   // 用 focus 事件來偵測「回來了」→ 代表剛才切走時沒被計數
   window.addEventListener('focus', function() {
     if (vcPassed === 0 && blurPassed === 0) {
-      addLog('你切走又回來了，但計數器沒增加 → 擴充套件攔截成功 ✅', 'blocked');
-      document.getElementById('val-vc').textContent = '✅ 已攔截';
-      document.getElementById('val-vc').className = 'value good';
-      document.getElementById('val-blur').textContent = '✅ 已攔截';
-      document.getElementById('val-blur').className = 'value good';
-      document.getElementById('val-ph').textContent = '✅ 已攔截';
-      document.getElementById('val-ph').className = 'value good';
+      addLog('你切走又回來了，計數器沒增加 → 全面攔截成功 ✅', 'blocked');
+      ['val-vc','val-blur','val-ph','val-freeze'].forEach(id => {
+        document.getElementById(id).textContent = '✅ 已攔截';
+        document.getElementById(id).className = 'value good';
+      });
       testsDone++;
     }
     updateScenarioResults();
     updateVerdict();
   });
+
+  // mouseleave 成功攔截偵測
+  document.addEventListener('mousemove', function() {
+    const el = document.getElementById('val-ml');
+    if (el.textContent === '把滑鼠移出視窗...') {
+      el.textContent = '移到視窗邊緣外試試';
+      el.className = 'value warn';
+    }
+  }, { once: true });
+
+  // 確認 mouseleave 被攔截（移出後再移回來，沒收到事件就代表被擋）
+  let mouseLeftOnce = false;
+  document.addEventListener('mouseenter', function() {
+    if (mouseLeftOnce) {
+      const el = document.getElementById('val-ml');
+      if (el.textContent !== '❌ 未攔截') {
+        el.textContent = '✅ 已攔截';
+        el.className = 'value good';
+        addLog('滑鼠移出視窗但 mouseleave 被攔截 ✅', 'blocked');
+      }
+    }
+  });
+  // 這個在捕獲階段之後（冒泡）偵測有沒有漏網之魚
+  document.addEventListener('mouseleave', function(e) {
+    if (!e.relatedTarget) mouseLeftOnce = true;
+  }, false);
 
   // ── 情境結果更新 ──────────────────────────────────────────
   function updateScenarioResults() {
