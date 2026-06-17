@@ -113,9 +113,9 @@ ap();
       if (overlayIndex > 0) { overlayIndex--; renderPanel(); }
     });
 
-    // Alt+Z：在「完全隱藏」和「顯示小點」之間切換
+    // Ctrl+`：在「完全隱藏」和「顯示小點」之間切換
     document.addEventListener('keydown', (e) => {
-      if (e.altKey && (e.key === 'z' || e.key === 'Z')) {
+      if (e.ctrlKey && e.key === '`') {
         e.preventDefault();
         if (stealthMode) {
           stealthMode = false;
