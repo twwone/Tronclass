@@ -43,6 +43,16 @@ ap();
     }
   });
 
+  // ── 接收 MAIN world 擷取的答案並存入 storage ────────────────────────────
+  document.addEventListener('__sv_answer__', (e) => {
+    const entry = e.detail;
+    chrome.storage.local.get({ answers: [] }, ({ answers }) => {
+      answers.unshift(entry);
+      if (answers.length > 200) answers.length = 200;
+      chrome.storage.local.set({ answers });
+    });
+  });
+
   // ── document 屬性覆寫（document 為兩個 world 共用物件）────────────────
   const orig = {
     hidden:                Object.getOwnPropertyDescriptor(Document.prototype, 'hidden'),

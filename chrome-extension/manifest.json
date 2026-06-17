@@ -3,7 +3,10 @@
   "name": "Stay Visible",
   "version": "1.1",
   "description": "防止網頁偵測你切換視窗或分頁",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "web_accessible_resources": [
+    { "resources": ["answers.html", "answers.js"], "matches": ["<all_urls>"] }
+  ],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
