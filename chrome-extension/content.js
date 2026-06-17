@@ -43,73 +43,130 @@ ap();
     }
   });
 
-  // ── 浮動答案面板 ─────────────────────────────────────────────────────────
+  // ── 浮動答案面板（隱匿版）────────────────────────────────────────────────
   let overlayAnswers = [];
   let overlayIndex = 0;
-  let overlayEl = null;
+  let dotEl = null;      // 小點（平時顯示）
+  let panelEl = null;    // 展開面板
+  let panelVisible = false;  // 面板是否展開
+  let stealthMode = false;   // Alt+Z 完全隱藏時為 true
 
-  function getOrCreateOverlay() {
-    if (overlayEl) return overlayEl;
-    overlayEl = document.createElement('div');
-    overlayEl.id = '__sv_overlay__';
-    overlayEl.style.cssText = [
-      'position:fixed', 'bottom:20px', 'right:20px', 'z-index:2147483647',
-      'background:rgba(15,15,15,0.92)', 'color:#fff', 'padding:12px 14px',
-      'border-radius:10px', 'font-size:13px', 'max-width:320px', 'min-width:200px',
-      'font-family:sans-serif', 'line-height:1.6', 'display:none',
-      'box-shadow:0 4px 16px rgba(0,0,0,0.5)', 'user-select:none',
-      'transition:opacity 0.2s',
-    ].join(';');
-    overlayEl.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;color:#aaa" id="__sv_counter__">0 / 0</span>
-        <div style="display:flex;gap:6px">
-          <button id="__sv_prev__" style="background:#333;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">‹</button>
-          <button id="__sv_next__" style="background:#333;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">›</button>
-          <button id="__sv_close__" style="background:#555;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">✕</button>
+  const DOT_STYLE = [
+    'position:fixed', 'bottom:12px', 'right:12px', 'z-index:2147483647',
+    'width:8px', 'height:8px', 'border-radius:50%',
+    'background:rgba(100,180,100,0.35)',
+    'cursor:pointer', 'transition:background 0.2s',
+  ].join(';');
+
+  const PANEL_STYLE = [
+    'position:fixed', 'bottom:28px', 'right:16px', 'z-index:2147483647',
+    'background:rgba(10,10,10,0.88)', 'color:#fff',
+    'padding:10px 13px', 'border-radius:10px',
+    'font-size:13px', 'max-width:310px', 'min-width:180px',
+    'font-family:sans-serif', 'line-height:1.6',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.45)',
+    'user-select:none', 'display:none',
+  ].join(';');
+
+  function buildOverlay() {
+    if (dotEl) return;
+
+    // 小點
+    dotEl = document.createElement('div');
+    dotEl.id = '__sv_dot__';
+    dotEl.style.cssText = DOT_STYLE;
+    document.body.appendChild(dotEl);
+
+    // 展開面板
+    panelEl = document.createElement('div');
+    panelEl.id = '__sv_panel__';
+    panelEl.style.cssText = PANEL_STYLE;
+    panelEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:10px;color:#888" id="__sv_counter__"></span>
+        <div style="display:flex;gap:5px">
+          <button id="__sv_prev__" style="background:#2a2a2a;color:#ccc;border:none;border-radius:3px;padding:1px 7px;cursor:pointer;font-size:13px">‹</button>
+          <button id="__sv_next__" style="background:#2a2a2a;color:#ccc;border:none;border-radius:3px;padding:1px 7px;cursor:pointer;font-size:13px">›</button>
+          <button id="__sv_hide__" style="background:#2a2a2a;color:#888;border:none;border-radius:3px;padding:1px 7px;cursor:pointer;font-size:11px" title="縮回小點">—</button>
         </div>
       </div>
-      <div id="__sv_q__" style="font-size:11px;color:#bbb;margin-bottom:4px;max-height:60px;overflow-y:auto"></div>
-      <div style="font-size:11px;color:#4fc;margin-bottom:2px">✅ 正確答案</div>
-      <div id="__sv_a__" style="font-size:15px;font-weight:bold;color:#7fff7f;word-break:break-all"></div>
+      <div id="__sv_q__" style="font-size:11px;color:#999;margin-bottom:4px;max-height:55px;overflow-y:auto;display:none"></div>
+      <div id="__sv_a__" style="font-size:15px;font-weight:bold;color:#6dff6d;word-break:break-all"></div>
     `;
-    document.body.appendChild(overlayEl);
+    document.body.appendChild(panelEl);
 
-    overlayEl.querySelector('#__sv_close__').addEventListener('click', () => {
-      overlayEl.style.display = 'none';
+    // 小點 hover 顯示面板
+    dotEl.addEventListener('mouseenter', () => { if (!stealthMode) showPanel(); });
+    panelEl.addEventListener('mouseleave', () => hidePanel());
+    panelEl.addEventListener('mouseenter', () => { /* 停在面板上不縮 */ });
+    dotEl.addEventListener('mouseleave', (e) => {
+      // 如果移到 panel 就不縮
+      if (e.relatedTarget === panelEl || panelEl.contains(e.relatedTarget)) return;
+      hidePanel();
     });
-    overlayEl.querySelector('#__sv_prev__').addEventListener('click', () => {
-      if (overlayIndex < overlayAnswers.length - 1) { overlayIndex++; renderOverlay(); }
+
+    panelEl.querySelector('#__sv_hide__').addEventListener('click', () => hidePanel());
+    panelEl.querySelector('#__sv_prev__').addEventListener('click', () => {
+      if (overlayIndex < overlayAnswers.length - 1) { overlayIndex++; renderPanel(); }
     });
-    overlayEl.querySelector('#__sv_next__').addEventListener('click', () => {
-      if (overlayIndex > 0) { overlayIndex--; renderOverlay(); }
+    panelEl.querySelector('#__sv_next__').addEventListener('click', () => {
+      if (overlayIndex > 0) { overlayIndex--; renderPanel(); }
     });
-    return overlayEl;
+
+    // Alt+Z：在「完全隱藏」和「顯示小點」之間切換
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (stealthMode) {
+          stealthMode = false;
+          dotEl.style.display = 'block';
+        } else {
+          stealthMode = true;
+          dotEl.style.display = 'none';
+          panelEl.style.display = 'none';
+          panelVisible = false;
+        }
+      }
+    });
   }
 
-  function renderOverlay() {
-    const el = getOrCreateOverlay();
-    if (!overlayAnswers.length) return;
-    el.style.display = 'block';
+  function showPanel() {
+    if (!panelEl || !overlayAnswers.length) return;
+    renderPanel();
+    panelEl.style.display = 'block';
+    panelVisible = true;
+  }
+
+  function hidePanel() {
+    if (!panelEl) return;
+    panelEl.style.display = 'none';
+    panelVisible = false;
+  }
+
+  function renderPanel() {
+    if (!panelEl || !overlayAnswers.length) return;
     const entry = overlayAnswers[overlayIndex];
     const answerText = typeof entry.answer === 'object' ? JSON.stringify(entry.answer) : String(entry.answer);
-    el.querySelector('#__sv_q__').textContent = entry.question || '';
-    el.querySelector('#__sv_q__').style.display = entry.question ? 'block' : 'none';
-    el.querySelector('#__sv_a__').textContent = answerText;
-    el.querySelector('#__sv_counter__').textContent = `${overlayAnswers.length - overlayIndex} / ${overlayAnswers.length}`;
-    el.querySelector('#__sv_prev__').disabled = overlayIndex >= overlayAnswers.length - 1;
-    el.querySelector('#__sv_next__').disabled = overlayIndex <= 0;
+    const qEl = panelEl.querySelector('#__sv_q__');
+    qEl.textContent = entry.question || '';
+    qEl.style.display = entry.question ? 'block' : 'none';
+    panelEl.querySelector('#__sv_a__').textContent = answerText;
+    panelEl.querySelector('#__sv_counter__').textContent = `${overlayAnswers.length - overlayIndex} / ${overlayAnswers.length}`;
+    panelEl.querySelector('#__sv_prev__').disabled = overlayIndex >= overlayAnswers.length - 1;
+    panelEl.querySelector('#__sv_next__').disabled = overlayIndex <= 0;
+  }
+
+  function syncOverlay(answers) {
+    overlayAnswers = answers;
+    overlayIndex = 0;
+    if (!dotEl && answers.length) buildOverlay();
+    if (dotEl) dotEl.style.display = stealthMode ? 'none' : 'block';
   }
 
   function syncOverlayFromStorage() {
-    chrome.storage.local.get({ answers: [] }, ({ answers }) => {
-      overlayAnswers = answers;
-      overlayIndex = 0;
-      if (overlayAnswers.length) renderOverlay();
-    });
+    chrome.storage.local.get({ answers: [] }, ({ answers }) => syncOverlay(answers));
   }
 
-  // 等 body 載入後建立 overlay
   if (document.body) {
     syncOverlayFromStorage();
   } else {
@@ -117,11 +174,7 @@ ap();
   }
 
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes.answers) {
-      overlayAnswers = changes.answers.newValue ?? [];
-      overlayIndex = 0;
-      if (overlayAnswers.length) renderOverlay();
-    }
+    if (changes.answers) syncOverlay(changes.answers.newValue ?? []);
   });
 
   // ── 接收 MAIN world 擷取的答案並存入 storage ────────────────────────────
