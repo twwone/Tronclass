@@ -4,7 +4,7 @@
   window.__sv_loaded = true;
 
   const WIN_BLOCK = new Set(['blur', 'pagehide', 'freeze']);
-  const DOC_BLOCK = new Set(['visibilitychange', 'webkitvisibilitychange', 'mozvisibilitychange', 'fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange']);
+  const DOC_BLOCK = new Set(['visibilitychange', 'webkitvisibilitychange', 'mozvisibilitychange', 'fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'contextmenu', 'copy', 'cut', 'paste', 'selectstart', 'dragstart']);
 
   let active = true;
 

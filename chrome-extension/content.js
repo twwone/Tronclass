@@ -7,7 +7,7 @@
     s.textContent = `(function(){
 if(window.__sv_loaded)return;
 window.__sv_loaded=true;
-var WB=["blur","pagehide","freeze"],DB=["visibilitychange","webkitvisibilitychange","mozvisibilitychange","fullscreenchange","webkitfullscreenchange","mozfullscreenchange"];
+var WB=["blur","pagehide","freeze"],DB=["visibilitychange","webkitvisibilitychange","mozvisibilitychange","fullscreenchange","webkitfullscreenchange","mozfullscreenchange","contextmenu","copy","cut","paste","selectstart","dragstart"];
 var _a=EventTarget.prototype.addEventListener,_r=EventTarget.prototype.removeEventListener;
 var on=true;
 EventTarget.prototype.addEventListener=function(t,f,o){
@@ -112,6 +112,12 @@ ap();
     document.addEventListener('fullscreenchange',       stopEvent, true);
     document.addEventListener('webkitfullscreenchange', stopEvent, true);
     document.addEventListener('mozfullscreenchange',    stopEvent, true);
+    document.addEventListener('contextmenu',            stopEvent, true);
+    document.addEventListener('copy',                   stopEvent, true);
+    document.addEventListener('cut',                    stopEvent, true);
+    document.addEventListener('paste',                  stopEvent, true);
+    document.addEventListener('selectstart',            stopEvent, true);
+    document.addEventListener('dragstart',              stopEvent, true);
   }
 
   function restore() {
@@ -134,5 +140,11 @@ ap();
     document.removeEventListener('fullscreenchange',       stopEvent, true);
     document.removeEventListener('webkitfullscreenchange', stopEvent, true);
     document.removeEventListener('mozfullscreenchange',    stopEvent, true);
+    document.removeEventListener('contextmenu',            stopEvent, true);
+    document.removeEventListener('copy',                   stopEvent, true);
+    document.removeEventListener('cut',                    stopEvent, true);
+    document.removeEventListener('paste',                  stopEvent, true);
+    document.removeEventListener('selectstart',            stopEvent, true);
+    document.removeEventListener('dragstart',              stopEvent, true);
   }
 })();
