@@ -2,9 +2,9 @@
 
 <img src="chrome-extension/icons/icon128.png" alt="Stay Visible" width="96"/>
 
-# Stay Visible
+# Stay Visible — Tronclass 版
 
-**防止翱翔課堂（TronClass）偵測你切換視窗或分頁**
+**上課影片切去查資料，回來發現被暫停了？這個就是為你做的。**
 
 [![License](https://img.shields.io/github/license/twwone/Tronclass?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/twwone/Tronclass?style=flat-square)](https://github.com/twwone/Tronclass/stargazers)
@@ -15,131 +15,122 @@
 
 ---
 
-## 📖 這是什麼？
-
-很多線上學習平台（包括翱翔課堂）會監聽你的視窗焦點，當你切換到其他分頁或視窗時，影片會自動暫停、甚至記錄離開次數。
-
-**Stay Visible** 是一款 Chrome 擴充套件，透過攔截瀏覽器的 Visibility API，讓網頁永遠以為你還在這個分頁，解決上述問題。
-
-### 它做了什麼？
-
-| 攔截項目 | 說明 |
-|----------|------|
-| `document.hidden` | 永遠回傳 `false`（頁面不隱藏） |
-| `document.visibilityState` | 永遠回傳 `'visible'`（頁面可見） |
-| `visibilitychange` 事件 | 阻止觸發 |
-| `blur` 事件 | 阻止觸發 |
-| `pagehide` 事件 | 阻止觸發 |
+> 翱翔課堂的影片只要你切換分頁就會暫停，回來還要從頭找進度。
+> 這個擴充套件讓瀏覽器跟網頁說「我還在」，讓你安心多開分頁查資料。
 
 ---
 
-## 📦 安裝方式
+## 它做了什麼
 
-> Chrome Web Store 上架前，請使用**手動安裝（開發者模式）**。
+翱翔課堂透過瀏覽器的 [Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API) 偵測你有沒有在看。Stay Visible 直接在最底層攔截這些訊號：
 
-### 步驟 1 — 下載專案
+| 攔截目標 | 原本的值 | 裝完之後 |
+|----------|----------|----------|
+| `document.hidden` | `true`（你切走了） | 永遠 `false` |
+| `document.visibilityState` | `"hidden"` | 永遠 `"visible"` |
+| `visibilitychange` 事件 | 會觸發 | 直接擋掉 |
+| `blur` / `pagehide` 事件 | 會觸發 | 直接擋掉 |
 
-```bash
-git clone https://github.com/twwone/Tronclass.git
-```
+---
 
-或直接點右上角 **Code → Download ZIP** 下載後解壓縮。
+## 如何安裝
 
-### 步驟 2 — 開啟 Chrome 擴充功能頁面
+> [!NOTE]
+> 這個擴充套件尚未上架 Chrome Web Store，需要用**開發者模式**手動安裝，步驟很簡單，跟著做就行。
 
-在網址列輸入：
+**第一步 — 下載這個專案**
+
+點右上角綠色的 **`Code`** 按鈕 → **`Download ZIP`**，下載後解壓縮到任意位置。
+
+---
+
+**第二步 — 開啟 Chrome 擴充功能頁面**
+
+在網址列輸入以下網址並按 Enter：
 
 ```
 chrome://extensions
 ```
 
-### 步驟 3 — 啟用開發者模式
+---
 
-開啟右上角的 **「開發人員模式」** 開關。
+**第三步 — 啟用開發者模式**
 
-![開發者模式示意](https://i.imgur.com/placeholder-devmode.png)
+進入頁面後，開啟右上角的 **「開發人員模式」** 切換開關。
 
-### 步驟 4 — 載入擴充套件
-
-點擊 **「載入未封裝項目」**，選擇剛才下載的 `chrome-extension/` 資料夾。
-
-完成後擴充套件列表中會出現 **Stay Visible**。
+> [!WARNING]
+> 如果沒開啟開發者模式，下一步的「載入未封裝項目」按鈕不會出現。
 
 ---
 
-## 🚀 使用方式
+**第四步 — 載入擴充套件**
 
-1. 進入翱翔課堂（或任何需要的網站）
-2. 點擊瀏覽器右上角的 **Stay Visible 圖示**
-3. 確認狀態顯示 **已啟用 ✅**
+點擊左上角出現的 **「載入未封裝項目」**，選擇你剛才解壓縮的資料夾裡的 **`chrome-extension`** 子資料夾。
 
 ```
-┌─────────────────────┐
-│    Stay Visible     │
-│                     │
-│    已啟用 ✅         │
-│                     │
-│  ┌───────────────┐  │
-│  │   點我停用    │  │  ← 點擊切換開關
-│  └───────────────┘  │
-└─────────────────────┘
+Tronclass-main/
+└── chrome-extension/   ← 選這個資料夾
+    ├── manifest.json
+    ├── content.js
+    ├── popup.html
+    ├── popup.js
+    └── icons/
 ```
 
-| 狀態 | 說明 |
-|------|------|
-| ✅ 已啟用（綠色） | 網頁無法偵測你切換分頁 |
-| ❌ 已停用（紅色） | 恢復瀏覽器原始行為 |
-
-> 設定會自動記住，重新整理後依然有效。
+載入完成後，擴充套件列表會出現 **Stay Visible**，代表安裝成功 🎉
 
 ---
 
-## 📁 專案結構
+## 如何使用
 
-```
-chrome-extension/
-├── manifest.json   # 擴充套件設定（Manifest v3）
-├── content.js      # 核心邏輯，攔截 Visibility API
-├── popup.html      # 點擊圖示後的彈出介面
-├── popup.js        # 介面控制邏輯
-└── icons/
-    ├── icon16.png
-    ├── icon48.png
-    └── icon128.png
-```
+1. 打開翱翔課堂，進到有影片的頁面
+2. 點瀏覽器右上角工具列的 **Stay Visible 圖示**
+3. 確認彈出視窗顯示 **已啟用 ✅**（按鈕是綠色的）
+
+就這樣，之後切去其他分頁影片也不會暫停了。
 
 ---
 
-## 🔧 相容性
+想暫時關掉的話，再點一次圖示，按 **點我停用** 即可切回紅色（❌ 已停用），瀏覽器恢復正常行為。
 
-| 瀏覽器 | 支援狀況 |
-|--------|----------|
-| Chrome 88+ | ✅ 完整支援 |
-| Edge（Chromium）| ✅ 完整支援 |
-| Firefox | ❌ 不支援（Manifest v3 差異） |
+> [!NOTE]
+> 設定會記住，重新整理或重開瀏覽器後不需要重新設定。
+
+---
+
+## 瀏覽器支援
+
+| 瀏覽器 | 支援 |
+|--------|------|
+| Chrome 88+ | ✅ |
+| Edge（Chromium 核心）| ✅ |
+| Brave | ✅ |
+| Firefox | ❌ Manifest v3 不相容 |
 | Safari | ❌ 不支援 |
 
 ---
 
-## ⚠️ 免責聲明
+## 常見問題
 
-本工具僅供個人學習與研究使用。使用前請確認是否符合所在學校的規範，因使用本工具所產生的任何後果由使用者自行承擔。
+**Q：裝完之後影片還是會暫停？**
+確認 popup 顯示「已啟用 ✅」。如果是，可能是該平台用了其他偵測方式（例如滑鼠移動偵測），Stay Visible 目前只攔截 Visibility API。
 
----
+**Q：會不會被學校發現？**
+Stay Visible 只修改本機瀏覽器行為，不會對伺服器發送任何請求，伺服器端無法感知。
 
-## 🤝 貢獻
-
-歡迎提交 Issue 或 Pull Request！
-
-1. Fork 此專案
-2. 建立分支：`git checkout -b feature/改進內容`
-3. 提交：`git commit -m 'Add: 說明'`
-4. 推送：`git push origin feature/改進內容`
-5. 開啟 Pull Request
+**Q：為什麼不上架 Chrome Web Store？**
+開發中，歡迎給 ⭐ 催更。
 
 ---
 
-## 📄 授權
+## 免責聲明
+
+> [!CAUTION]
+> 本工具僅供個人學習與研究使用。使用前請自行確認是否符合所在學校的相關規範，因使用本工具所產生的任何後果由使用者自行負責。
+
+---
+
+## 授權
 
 [MIT License](LICENSE) © [twwone](https://github.com/twwone)
 
@@ -147,6 +138,6 @@ chrome-extension/
 
 <div align="center">
 
-如果這個專案對你有幫助，請給個 ⭐ 支持！
+覺得有用的話給個 ⭐ 讓更多人找得到！
 
 </div>
