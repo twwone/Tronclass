@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      width: 200px;
+      padding: 16px;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    h2 { margin: 0 0 12px; font-size: 16px; }
+    #status {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #555;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button.on  { background: #4caf50; color: #fff; }
+    button.off { background: #f44336; color: #fff; }
+  </style>
+</head>
+<body>
+  <h2>Stay Visible</h2>
+  <div id="status">載入中...</div>
+  <button id="toggle">切換</button>
+  <script src="popup.js"></script>
+</body>
+</html>
