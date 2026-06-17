@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stay Visible — 實戰前回測</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    /* 擴充套件狀態 */
+    #ext-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    #ext-status .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #64748b;
+      flex-shrink: 0;
+    }
+    #ext-status.active .dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+    #ext-status.inactive .dot { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+
+    /* API 即時狀態列 */
+    .api-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .api-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .api-card .label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 6px;
+    }
+    .api-card .value {
+      font-size: 15px;
+      font-weight: 600;
+      font-family: monospace;
+    }
+    .api-card .value.good { color: #22c55e; }
+    .api-card .value.bad  { color: #ef4444; }
+    .api-card .value.warn { color: #f59e0b; }
+
+    /* 模擬考試區 */
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    .exam-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 28px;
+    }
+    .counter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .counter-display {
+      font-size: 42px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .counter-display.safe   { color: #22c55e; }
+    .counter-display.warn   { color: #f59e0b; }
+    .counter-display.danger { color: #ef4444; }
+    .counter-meta {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .limit-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .limit-control label { color: #94a3b8; }
+    .limit-control select {
+      background: #0f1117;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 14px;
+    }
+    .status-bar {
+      background: #0f1117;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .status-bar.ok     { border-left: 3px solid #22c55e; }
+    .status-bar.warn   { border-left: 3px solid #f59e0b; }
+    .status-bar.danger { border-left: 3px solid #ef4444; }
+    .btn-reset {
+      background: #334155;
+      border: none;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-reset:hover { background: #475569; }
+
+    /* 事件日誌 */
+    .log-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 28px;
+    }
+    #log {
+      font-family: monospace;
+      font-size: 13px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .log-entry {
+      display: flex;
+      gap: 10px;
+      padding: 3px 0;
+      border-bottom: 1px solid #0f1117;
+    }
+    .log-entry .ts  { color: #475569; flex-shrink: 0; }
+    .log-entry .msg { }
+    .log-entry.blocked { color: #22c55e; }
+    .log-entry.passed  { color: #ef4444; }
+    .log-entry.info    { color: #64748b; }
+
+    /* 情境測試 */
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .scenario-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .scenario-card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .scenario-card p {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .scenario-card .result {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #0f1117;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+    }
+    .result.pass { color: #22c55e; }
+    .result.fail { color: #ef4444; }
+    .result.pending { color: #64748b; }
+
+    /* 總結 */
+    #summary {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 15px;
+      text-align: center;
+    }
+    #summary .verdict {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    #summary .verdict.pass { color: #22c55e; }
+    #summary .verdict.fail { color: #ef4444; }
+    #summary .verdict.pending { color: #64748b; }
+
+    .pill {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: #334155;
+      color: #94a3b8;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Stay Visible — 實戰前回測</h1>
+<p class="subtitle">模擬 TronClass 考試的所有偵測情境，確認擴充套件正常攔截後再去考試</p>
+
+<!-- 擴充套件狀態 -->
+<div id="ext-status">
+  <div class="dot"></div>
+  <span id="ext-text">偵測中...</span>
+</div>
+
+<!-- API 即時狀態 -->
+<div class="section-title">即時 API 狀態 <span class="pill">每秒更新</span></div>
+<div class="api-grid">
+  <div class="api-card">
+    <div class="label">document.hidden</div>
+    <div class="value" id="val-hidden">—</div>
+  </div>
+  <div class="api-card">
+    <div class="label">document.visibilityState</div>
+    <div class="value" id="val-visibility">—</div>
+  </div>
+  <div class="api-card">
+    <div class="label">document.hasFocus()</div>
+    <div class="value" id="val-focus">—</div>
+  </div>
+  <div class="api-card">
+    <div class="label">visibilitychange 攔截</div>
+    <div class="value" id="val-vc">等待測試...</div>
+  </div>
+  <div class="api-card">
+    <div class="label">blur 事件攔截</div>
+    <div class="value" id="val-blur">等待測試...</div>
+  </div>
+  <div class="api-card">
+    <div class="label">pagehide 事件攔截</div>
+    <div class="value" id="val-ph">等待測試...</div>
+  </div>
+</div>
+
+<!-- 模擬考試計數器 -->
+<div class="section-title">模擬 TronClass 考試計數器</div>
+<div class="exam-box">
+  <div class="counter-row">
+    <div>
+      <div class="counter-display safe" id="leave-count">0</div>
+      <div class="counter-meta">/ <span id="leave-limit">3</span> 次（達上限強制交卷）</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+      <div class="limit-control">
+        <label>老師設定上限：</label>
+        <select id="limit-select">
+          <option value="0">0 次（最嚴格）</option>
+          <option value="1">1 次</option>
+          <option value="3" selected>3 次（常見）</option>
+          <option value="5">5 次</option>
+          <option value="99">無限制</option>
+        </select>
+      </div>
+      <button class="btn-reset" onclick="resetCounter()">重置計數</button>
+    </div>
+  </div>
+  <div class="status-bar ok" id="exam-status">
+    ✅ 考試進行中 — 切換分頁看看有沒有被計數
+  </div>
+</div>
+
+<!-- 情境測試 -->
+<div class="section-title">情境逐項測試</div>
+<div class="scenario-grid">
+
+  <div class="scenario-card">
+    <h3>情境 1：切換到其他分頁</h3>
+    <p>點到另一個分頁再回來，看計數器有沒有增加。<br>擴充套件正常 → 計數器不動</p>
+    <div class="result pending" id="s1-result">請手動切換分頁測試</div>
+  </div>
+
+  <div class="scenario-card">
+    <h3>情境 2：最小化視窗</h3>
+    <p>把瀏覽器視窗縮到工作列再展開。<br>擴充套件正常 → 計數器不動</p>
+    <div class="result pending" id="s2-result">請手動最小化測試</div>
+  </div>
+
+  <div class="scenario-card">
+    <h3>情境 3：Alt+Tab 切換應用程式</h3>
+    <p>按 Alt+Tab 切到別的程式再切回來。<br>擴充套件正常 → 計數器不動</p>
+    <div class="result pending" id="s3-result">請手動 Alt+Tab 測試</div>
+  </div>
+
+  <div class="scenario-card">
+    <h3>情境 4：document.hidden 值</h3>
+    <p>TronClass 直接讀取這個值判斷你在不在。<br>擴充套件正常 → 永遠是 false</p>
+    <div class="result pending" id="s4-result">自動偵測中...</div>
+  </div>
+
+  <div class="scenario-card">
+    <h3>情境 5：visibilityState 值</h3>
+    <p>TronClass 讀取這個值確認頁面狀態。<br>擴充套件正常 → 永遠是 "visible"</p>
+    <div class="result pending" id="s5-result">自動偵測中...</div>
+  </div>
+
+  <div class="scenario-card">
+    <h3>情境 6：開啟新視窗</h3>
+    <p>用 Ctrl+N 開一個新視窗，焦點移走。<br>擴充套件正常 → 計數器不動</p>
+    <div class="result pending" id="s6-result">請手動開新視窗測試</div>
+  </div>
+
+</div>
+
+<!-- 事件日誌 -->
+<div class="section-title">事件攔截日誌</div>
+<div class="log-box">
+  <div id="log">
+    <div class="log-entry info"><span class="ts">—</span><span class="msg">等待事件發生... 現在切換分頁或最小化視窗試試</span></div>
+  </div>
+</div>
+
+<!-- 總結 -->
+<div class="section-title">測試總結</div>
+<div id="summary">
+  <div class="verdict pending" id="verdict-text">進行測試中...</div>
+  <div id="verdict-sub" style="color:#64748b;font-size:13px">切換分頁、最小化、Alt+Tab 各測一次後，這裡會給出結論</div>
+</div>
+
+<script>
+  // ── 狀態追蹤 ──────────────────────────────────────────
+  let leaveCount = 0;
+  let vcBlocked = 0, vcPassed = 0;
+  let blurBlocked = 0, blurPassed = 0;
+  let phBlocked = 0;
+  let testsDone = 0;
+
+  // ── 工具函數 ──────────────────────────────────────────
+  function ts() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  }
+
+  function addLog(msg, type = 'info') {
+    const log = document.getElementById('log');
+    // 移除初始提示
+    const placeholder = log.querySelector('.log-entry.info');
+    if (placeholder && log.children.length === 1) placeholder.remove();
+
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${type}`;
+    entry.innerHTML = `<span class="ts">${ts()}</span><span class="msg">${msg}</span>`;
+    log.prepend(entry);
+    // 最多保留 40 條
+    while (log.children.length > 40) log.lastChild.remove();
+  }
+
+  // ── 計數器 ──────────────────────────────────────────
+  function getLimit() {
+    return parseInt(document.getElementById('limit-select').value);
+  }
+
+  function incrementLeave(source) {
+    leaveCount++;
+    testsDone++;
+    const limit = getLimit();
+    const el = document.getElementById('leave-count');
+    el.textContent = leaveCount;
+
+    if (limit === 99) {
+      el.className = 'counter-display safe';
+    } else if (leaveCount >= limit && limit > 0) {
+      el.className = 'counter-display danger';
+      document.getElementById('exam-status').className = 'status-bar danger';
+      document.getElementById('exam-status').textContent = `🚨 已達上限！TronClass 這時會強制交卷（來源：${source}）`;
+    } else if (leaveCount >= limit * 0.66 && limit > 0) {
+      el.className = 'counter-display warn';
+      document.getElementById('exam-status').className = 'status-bar warn';
+      document.getElementById('exam-status').textContent = `⚠️ 剩 ${limit - leaveCount} 次機會（來源：${source}）`;
+    }
+    updateVerdict();
+  }
+
+  function resetCounter() {
+    leaveCount = 0;
+    document.getElementById('leave-count').textContent = '0';
+    document.getElementById('leave-count').className = 'counter-display safe';
+    document.getElementById('exam-status').className = 'status-bar ok';
+    document.getElementById('exam-status').textContent = '✅ 考試進行中 — 切換分頁看看有沒有被計數';
+  }
+
+  document.getElementById('limit-select').addEventListener('change', function() {
+    document.getElementById('leave-limit').textContent = this.value === '99' ? '∞' : this.value;
+    resetCounter();
+  });
+
+  // ── API 即時更新 ──────────────────────────────────────────
+  function updateAPI() {
+    const hidden = document.hidden;
+    const vis = document.visibilityState;
+    const focus = document.hasFocus();
+
+    const hEl = document.getElementById('val-hidden');
+    hEl.textContent = String(hidden);
+    hEl.className = 'value ' + (hidden === false ? 'good' : 'bad');
+
+    const vEl = document.getElementById('val-visibility');
+    vEl.textContent = `"${vis}"`;
+    vEl.className = 'value ' + (vis === 'visible' ? 'good' : 'bad');
+
+    const fEl = document.getElementById('val-focus');
+    fEl.textContent = String(focus);
+    fEl.className = 'value ' + (focus ? 'good' : 'warn');
+
+    // 情境 4 & 5
+    document.getElementById('s4-result').className = 'result ' + (hidden === false ? 'pass' : 'fail');
+    document.getElementById('s4-result').textContent = hidden === false
+      ? '✅ 通過：document.hidden = false'
+      : '❌ 失敗：document.hidden = true（擴充套件未啟用？）';
+
+    document.getElementById('s5-result').className = 'result ' + (vis === 'visible' ? 'pass' : 'fail');
+    document.getElementById('s5-result').textContent = vis === 'visible'
+      ? '✅ 通過：visibilityState = "visible"'
+      : `❌ 失敗：visibilityState = "${vis}"`;
+
+    // 擴充套件整體狀態
+    const extActive = hidden === false && vis === 'visible';
+    const statusEl = document.getElementById('ext-status');
+    statusEl.className = extActive ? 'active' : 'inactive';
+    document.getElementById('ext-text').textContent = extActive
+      ? '✅  Stay Visible 擴充套件已啟用，API 攔截正常'
+      : '❌  擴充套件未偵測到 — 請確認已安裝並啟用';
+  }
+
+  // ── 事件監聽（模擬 TronClass 偵測）──────────────────────────
+  // visibilitychange
+  document.addEventListener('visibilitychange', function(e) {
+    // 如果被擋下，這裡根本不會執行
+    vcPassed++;
+    incrementLeave('visibilitychange');
+    addLog(`visibilitychange 事件觸發 → 擴充套件未攔截！hidden=${document.hidden}`, 'passed');
+    document.getElementById('val-vc').textContent = '❌ 未攔截';
+    document.getElementById('val-vc').className = 'value bad';
+    updateScenarioResults();
+  }, false); // capture:false，位於冒泡階段，若擴充套件在捕獲階段阻止則不會到這裡
+
+  // blur
+  window.addEventListener('blur', function(e) {
+    blurPassed++;
+    incrementLeave('blur');
+    addLog('blur 事件觸發 → 擴充套件未攔截！', 'passed');
+    document.getElementById('val-blur').textContent = '❌ 未攔截';
+    document.getElementById('val-blur').className = 'value bad';
+    updateScenarioResults();
+  }, false);
+
+  // pagehide
+  window.addEventListener('pagehide', function(e) {
+    phBlocked = false;
+    incrementLeave('pagehide');
+    addLog('pagehide 事件觸發 → 擴充套件未攔截！', 'passed');
+    document.getElementById('val-ph').textContent = '❌ 未攔截';
+    document.getElementById('val-ph').className = 'value bad';
+  }, false);
+
+  // 若以上事件完全沒觸發，就代表被擋住了
+  // 用 focus 事件來偵測「回來了」→ 代表剛才切走時沒被計數
+  window.addEventListener('focus', function() {
+    if (vcPassed === 0 && blurPassed === 0) {
+      addLog('你切走又回來了，但計數器沒增加 → 擴充套件攔截成功 ✅', 'blocked');
+      document.getElementById('val-vc').textContent = '✅ 已攔截';
+      document.getElementById('val-vc').className = 'value good';
+      document.getElementById('val-blur').textContent = '✅ 已攔截';
+      document.getElementById('val-blur').className = 'value good';
+      document.getElementById('val-ph').textContent = '✅ 已攔截';
+      document.getElementById('val-ph').className = 'value good';
+      testsDone++;
+    }
+    updateScenarioResults();
+    updateVerdict();
+  });
+
+  // ── 情境結果更新 ──────────────────────────────────────────
+  function updateScenarioResults() {
+    const allBlocked = (vcPassed === 0 && blurPassed === 0);
+
+    ['s1','s2','s3','s6'].forEach(id => {
+      const el = document.getElementById(id + '-result');
+      if (testsDone > 0) {
+        el.className = 'result ' + (allBlocked ? 'pass' : 'fail');
+        el.textContent = allBlocked
+          ? '✅ 擴充套件攔截成功，計數器未增加'
+          : '❌ 偵測到離開事件，計數器增加了';
+      }
+    });
+  }
+
+  // ── 總結 ──────────────────────────────────────────
+  function updateVerdict() {
+    const hidden = document.hidden;
+    const vis = document.visibilityState;
+    const apiOk = hidden === false && vis === 'visible';
+    const eventsOk = vcPassed === 0 && blurPassed === 0;
+
+    const vEl = document.getElementById('verdict-text');
+    const sEl = document.getElementById('verdict-sub');
+
+    if (testsDone === 0) {
+      vEl.textContent = '進行測試中...';
+      vEl.className = 'verdict pending';
+      sEl.textContent = '切換分頁、最小化、Alt+Tab 各測一次後，這裡會給出結論';
+      return;
+    }
+
+    if (apiOk && eventsOk) {
+      vEl.textContent = '✅ 可以去考試了';
+      vEl.className = 'verdict pass';
+      sEl.textContent = 'API 攔截正常，所有偵測事件均被阻止，TronClass 考試不會計算離開次數';
+    } else if (!apiOk) {
+      vEl.textContent = '❌ 擴充套件未啟用';
+      vEl.className = 'verdict fail';
+      sEl.textContent = '請確認 Stay Visible 已安裝，並在 popup 中確認狀態為「已啟用 ✅」後重新整理此頁';
+    } else {
+      vEl.textContent = '⚠️ 部分事件未被攔截';
+      vEl.className = 'verdict fail';
+      sEl.textContent = `visibilitychange 通過 ${vcPassed} 次、blur 通過 ${blurPassed} 次 — 請重新啟用擴充套件後再測試`;
+    }
+  }
+
+  // ── 啟動 ──────────────────────────────────────────
+  setInterval(updateAPI, 1000);
+  updateAPI();
+</script>
+</body>
+</html>
