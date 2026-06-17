@@ -3,46 +3,125 @@
 <head>
   <meta charset="UTF-8" />
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 200px;
-      padding: 16px;
+      width: 280px;
       font-family: sans-serif;
-      text-align: center;
-    }
-    h2 { margin: 0 0 12px; font-size: 16px; }
-    #status {
       font-size: 14px;
-      margin-bottom: 12px;
-      color: #555;
+      background: #fff;
+      color: #222;
     }
-    button {
-      width: 100%;
-      padding: 8px;
-      font-size: 14px;
+
+    /* 頂部工具列 */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .topbar span { font-weight: bold; font-size: 14px; }
+    .toggle-btn {
+      font-size: 12px;
+      padding: 3px 8px;
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
       cursor: pointer;
     }
-    button.on  { background: #4caf50; color: #fff; }
-    button.off { background: #f44336; color: #fff; }
-    #answersBtn {
-      margin-top: 10px;
-      background: #1976d2;
-      color: #fff;
+    .toggle-btn.on  { background: #4caf50; color: #fff; }
+    .toggle-btn.off { background: #f44336; color: #fff; }
+
+    /* 答案區 */
+    .answer-area {
+      padding: 14px 12px;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    #answerCount {
+    .no-data {
+      color: #aaa;
+      text-align: center;
+      margin: auto;
+      font-size: 13px;
+    }
+    .question-text {
       font-size: 12px;
-      color: #888;
-      margin-top: 8px;
+      color: #666;
+      line-height: 1.5;
+      max-height: 60px;
+      overflow-y: auto;
+    }
+    .answer-label { font-size: 11px; color: #888; }
+    .answer-value {
+      font-size: 16px;
+      font-weight: bold;
+      color: #2e7d32;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+
+    /* 導航列 */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-top: 1px solid #eee;
+      background: #fafafa;
+    }
+    .nav button {
+      width: 32px;
+      height: 28px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .nav button:disabled { opacity: 0.3; cursor: default; }
+    .nav .counter { font-size: 12px; color: #888; }
+
+    /* 清除按鈕 */
+    .footer {
+      padding: 6px 12px 10px;
+      text-align: right;
+    }
+    .clear-btn {
+      font-size: 11px;
+      color: #aaa;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <h2>Stay Visible</h2>
-  <div id="status">載入中...</div>
-  <button id="toggle">切換</button>
-  <button id="answersBtn">查看擷取的答案</button>
-  <div id="answerCount"></div>
+  <div class="topbar">
+    <span>Stay Visible</span>
+    <button class="toggle-btn" id="toggleBtn">載入中</button>
+  </div>
+
+  <div class="answer-area" id="answerArea">
+    <div class="no-data" id="noData">尚無擷取到的答案</div>
+    <div id="dataView" hidden>
+      <div class="question-text" id="questionText"></div>
+      <div class="answer-label">✅ 正確答案</div>
+      <div class="answer-value" id="answerValue"></div>
+    </div>
+  </div>
+
+  <div class="nav" id="nav" hidden>
+    <button id="prevBtn">‹</button>
+    <span class="counter" id="counter"></span>
+    <button id="nextBtn">›</button>
+  </div>
+
+  <div class="footer">
+    <button class="clear-btn" id="clearBtn">清除所有記錄</button>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,39 +1,84 @@
-const statusEl = document.getElementById('status');
-const toggleBtn = document.getElementById('toggle');
-const answersBtn = document.getElementById('answersBtn');
-const answerCountEl = document.getElementById('answerCount');
+let answers = [];
+let index = 0; // 0 = 最新那筆
 
-answersBtn.addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('answers.html') });
-});
+const toggleBtn  = document.getElementById('toggleBtn');
+const noData     = document.getElementById('noData');
+const dataView   = document.getElementById('dataView');
+const questionEl = document.getElementById('questionText');
+const answerEl   = document.getElementById('answerValue');
+const nav        = document.getElementById('nav');
+const prevBtn    = document.getElementById('prevBtn');
+const nextBtn    = document.getElementById('nextBtn');
+const counterEl  = document.getElementById('counter');
+const clearBtn   = document.getElementById('clearBtn');
 
-function updateAnswerCount() {
-  chrome.storage.local.get({ answers: [] }, ({ answers }) => {
-    answerCountEl.textContent = answers.length
-      ? `已擷取 ${answers.length} 筆答案`
-      : '尚無擷取到的答案';
-  });
-}
-
-updateAnswerCount();
+// ── 開關狀態 ─────────────────────────────────────────────────────────────
+chrome.storage.local.get('enabled', ({ enabled }) => renderToggle(enabled !== false));
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.answers) updateAnswerCount();
-});
-
-chrome.storage.local.get('enabled', (result) => {
-  const enabled = result.enabled !== false;
-  render(enabled);
+  if (changes.enabled) renderToggle(changes.enabled.newValue);
+  if (changes.answers) {
+    const wasEmpty = answers.length === 0;
+    answers = changes.answers.newValue ?? [];
+    if (wasEmpty || index === 0) index = 0; // 有新答案時自動跳到最新
+    renderAnswer();
+  }
 });
 
 toggleBtn.addEventListener('click', () => {
-  chrome.storage.local.get('enabled', (result) => {
-    const current = result.enabled !== false;
-    chrome.storage.local.set({ enabled: !current }, () => render(!current));
+  chrome.storage.local.get('enabled', ({ enabled }) => {
+    const next = !(enabled !== false);
+    chrome.storage.local.set({ enabled: next });
   });
 });
 
-function render(enabled) {
-  statusEl.textContent = enabled ? '已啟用 ✅' : '已停用 ❌';
-  toggleBtn.textContent = enabled ? '點我停用' : '點我啟用';
-  toggleBtn.className = enabled ? 'on' : 'off';
+function renderToggle(enabled) {
+  toggleBtn.textContent = enabled ? '已啟用' : '已停用';
+  toggleBtn.className = 'toggle-btn ' + (enabled ? 'on' : 'off');
 }
+
+// ── 答案顯示 ──────────────────────────────────────────────────────────────
+chrome.storage.local.get({ answers: [] }, ({ answers: stored }) => {
+  answers = stored;
+  index = 0;
+  renderAnswer();
+});
+
+function renderAnswer() {
+  if (!answers.length) {
+    noData.hidden = false;
+    dataView.hidden = true;
+    nav.hidden = true;
+    return;
+  }
+
+  noData.hidden = true;
+  dataView.hidden = false;
+  nav.hidden = false;
+
+  const entry = answers[index];
+  const answerText = typeof entry.answer === 'object'
+    ? JSON.stringify(entry.answer)
+    : String(entry.answer);
+
+  questionEl.textContent = entry.question ?? '';
+  questionEl.hidden = !entry.question;
+  answerEl.textContent = answerText;
+
+  counterEl.textContent = `${answers.length - index} / ${answers.length}`;
+  prevBtn.disabled = index >= answers.length - 1; // 往舊的
+  nextBtn.disabled = index <= 0;                  // 往新的
+}
+
+prevBtn.addEventListener('click', () => {
+  if (index < answers.length - 1) { index++; renderAnswer(); }
+});
+nextBtn.addEventListener('click', () => {
+  if (index > 0) { index--; renderAnswer(); }
+});
+
+clearBtn.addEventListener('click', () => {
+  chrome.storage.local.set({ answers: [] });
+  answers = [];
+  index = 0;
+  renderAnswer();
+});
