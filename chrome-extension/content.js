@@ -43,6 +43,87 @@ ap();
     }
   });
 
+  // ── 浮動答案面板 ─────────────────────────────────────────────────────────
+  let overlayAnswers = [];
+  let overlayIndex = 0;
+  let overlayEl = null;
+
+  function getOrCreateOverlay() {
+    if (overlayEl) return overlayEl;
+    overlayEl = document.createElement('div');
+    overlayEl.id = '__sv_overlay__';
+    overlayEl.style.cssText = [
+      'position:fixed', 'bottom:20px', 'right:20px', 'z-index:2147483647',
+      'background:rgba(15,15,15,0.92)', 'color:#fff', 'padding:12px 14px',
+      'border-radius:10px', 'font-size:13px', 'max-width:320px', 'min-width:200px',
+      'font-family:sans-serif', 'line-height:1.6', 'display:none',
+      'box-shadow:0 4px 16px rgba(0,0,0,0.5)', 'user-select:none',
+      'transition:opacity 0.2s',
+    ].join(';');
+    overlayEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;color:#aaa" id="__sv_counter__">0 / 0</span>
+        <div style="display:flex;gap:6px">
+          <button id="__sv_prev__" style="background:#333;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">‹</button>
+          <button id="__sv_next__" style="background:#333;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">›</button>
+          <button id="__sv_close__" style="background:#555;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">✕</button>
+        </div>
+      </div>
+      <div id="__sv_q__" style="font-size:11px;color:#bbb;margin-bottom:4px;max-height:60px;overflow-y:auto"></div>
+      <div style="font-size:11px;color:#4fc;margin-bottom:2px">✅ 正確答案</div>
+      <div id="__sv_a__" style="font-size:15px;font-weight:bold;color:#7fff7f;word-break:break-all"></div>
+    `;
+    document.body.appendChild(overlayEl);
+
+    overlayEl.querySelector('#__sv_close__').addEventListener('click', () => {
+      overlayEl.style.display = 'none';
+    });
+    overlayEl.querySelector('#__sv_prev__').addEventListener('click', () => {
+      if (overlayIndex < overlayAnswers.length - 1) { overlayIndex++; renderOverlay(); }
+    });
+    overlayEl.querySelector('#__sv_next__').addEventListener('click', () => {
+      if (overlayIndex > 0) { overlayIndex--; renderOverlay(); }
+    });
+    return overlayEl;
+  }
+
+  function renderOverlay() {
+    const el = getOrCreateOverlay();
+    if (!overlayAnswers.length) return;
+    el.style.display = 'block';
+    const entry = overlayAnswers[overlayIndex];
+    const answerText = typeof entry.answer === 'object' ? JSON.stringify(entry.answer) : String(entry.answer);
+    el.querySelector('#__sv_q__').textContent = entry.question || '';
+    el.querySelector('#__sv_q__').style.display = entry.question ? 'block' : 'none';
+    el.querySelector('#__sv_a__').textContent = answerText;
+    el.querySelector('#__sv_counter__').textContent = `${overlayAnswers.length - overlayIndex} / ${overlayAnswers.length}`;
+    el.querySelector('#__sv_prev__').disabled = overlayIndex >= overlayAnswers.length - 1;
+    el.querySelector('#__sv_next__').disabled = overlayIndex <= 0;
+  }
+
+  function syncOverlayFromStorage() {
+    chrome.storage.local.get({ answers: [] }, ({ answers }) => {
+      overlayAnswers = answers;
+      overlayIndex = 0;
+      if (overlayAnswers.length) renderOverlay();
+    });
+  }
+
+  // 等 body 載入後建立 overlay
+  if (document.body) {
+    syncOverlayFromStorage();
+  } else {
+    document.addEventListener('DOMContentLoaded', syncOverlayFromStorage);
+  }
+
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.answers) {
+      overlayAnswers = changes.answers.newValue ?? [];
+      overlayIndex = 0;
+      if (overlayAnswers.length) renderOverlay();
+    }
+  });
+
   // ── 接收 MAIN world 擷取的答案並存入 storage ────────────────────────────
   document.addEventListener('__sv_answer__', (e) => {
     const entry = e.detail;

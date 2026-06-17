@@ -83,10 +83,10 @@
     if (!data || typeof data !== 'object') return null;
 
     // 常見答案欄位名稱（遞迴搜尋）
-    const ANSWER_KEYS = ['correct_answer', 'correctAnswer', 'right_answer', 'answer_key'];
-    const CORRECT_KEYS = ['is_correct', 'isCorrect', 'correct'];
-    const QUESTION_KEYS = ['question', 'title', 'question_text', 'stem', 'content'];
-    const OPTION_KEYS = ['options', 'choices', 'answers'];
+    const ANSWER_KEYS = ['correct_answer', 'correctAnswer', 'right_answer', 'answer_key', 'rightAnswer', 'right_key'];
+    const CORRECT_KEYS = ['is_correct', 'isCorrect', 'correct', 'is_answer', 'isAnswer', 'is_right', 'isRight'];
+    const QUESTION_KEYS = ['question', 'title', 'question_text', 'stem', 'content', 'description', 'body', 'text'];
+    const OPTION_KEYS = ['options', 'choices', 'answers', 'selections', 'items'];
 
     function dig(obj, depth) {
       if (depth > 6 || !obj || typeof obj !== 'object') return null;
@@ -124,30 +124,58 @@
     return dig(data, 0);
   }
 
+  function tryExtractBatch(data) {
+    // 嘗試從資料中找到題目陣列
+    const candidates = [
+      data?.subjects_data?.subjects,
+      data?.subjects,
+      data?.questions,
+      data?.data?.subjects,
+      data?.data?.questions,
+      data?.result?.subjects,
+      data?.result?.questions,
+      data?.exam?.subjects,
+      data?.exam?.questions,
+      Array.isArray(data) ? data : null,
+    ];
+
+    for (const list of candidates) {
+      if (!Array.isArray(list) || !list.length) continue;
+      const batch = list.map(s => {
+        const opts = s.options || s.choices || s.selections || s.items || [];
+        const correctOpt = opts.find(o =>
+          o.is_answer === true || o.is_correct === true || o.correct === true ||
+          o.isAnswer === true || o.isCorrect === true || o.is_right === true
+        );
+        const questionText = stripHtml(
+          s.description || s.question || s.stem || s.content || s.title || s.body || s.text || ''
+        );
+        const answerText = stripHtml(
+          correctOpt?.content || correctOpt?.text || correctOpt?.label || correctOpt?.title ||
+          s.correct_answer || s.correctAnswer || s.right_answer || s.answer_explanation || ''
+        );
+        return { question: questionText, answer: answerText };
+      }).filter(e => e.answer);
+
+      if (batch.length) return batch;
+    }
+    return null;
+  }
+
   function tryEmitAnswer(url, data) {
     // 偵測模式：把所有 JSON 回應都記錄下來
     document.dispatchEvent(new CustomEvent('__sv_debug__', {
       detail: { url, data, timestamp: Date.now() }
     }));
 
-    // Tronclass 送出後的成績單：/api/exams/{id}/submissions/{id}
-    if (/\/api\/exams\/\d+\/submissions\/\d+/.test(url)) {
-      const subjects = data?.subjects_data?.subjects;
-      if (Array.isArray(subjects) && subjects.length) {
-        const batch = subjects.map(s => {
-          const correctOpt = (s.options || []).find(o => o.is_answer === true);
-          return {
-            question: stripHtml(s.description || ''),
-            answer:   stripHtml(correctOpt?.content || s.answer_explanation || ''),
-          };
-        }).filter(e => e.answer);
-
-        if (batch.length) {
-          document.dispatchEvent(new CustomEvent('__sv_answers_batch__', {
-            detail: { batch, url, timestamp: Date.now() }
-          }));
-          return;
-        }
+    // Tronclass 考試相關 API（進行中或送出後）
+    if (/\/api\/exams\//.test(url) || /\/exams\/\d+/.test(url)) {
+      const batch = tryExtractBatch(data);
+      if (batch && batch.length) {
+        document.dispatchEvent(new CustomEvent('__sv_answers_batch__', {
+          detail: { batch, url, timestamp: Date.now() }
+        }));
+        return;
       }
     }
 
