@@ -1,180 +1,152 @@
 <div align="center">
 
-# 🎓 Tronclass Helper
+<img src="chrome-extension/icons/icon128.png" alt="Stay Visible" width="96"/>
 
-**讓你的翱翔課堂體驗更流暢、更高效**
+# Stay Visible
+
+**防止翱翔課堂（TronClass）偵測你切換視窗或分頁**
 
 [![License](https://img.shields.io/github/license/twwone/Tronclass?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/twwone/Tronclass?style=flat-square)](https://github.com/twwone/Tronclass/stargazers)
-[![Issues](https://img.shields.io/github/issues/twwone/Tronclass?style=flat-square)](https://github.com/twwone/Tronclass/issues)
-[![Last Commit](https://img.shields.io/github/last-commit/twwone/Tronclass?style=flat-square)](https://github.com/twwone/Tronclass/commits)
+[![Manifest](https://img.shields.io/badge/Manifest-v3-blue?style=flat-square)](#)
+[![Chrome](https://img.shields.io/badge/Chrome-Extension-yellow?logo=googlechrome&logoColor=white&style=flat-square)](#)
 
 </div>
 
 ---
 
-## 📖 專案簡介
+## 📖 這是什麼？
 
-**Tronclass Helper** 是一款針對翱翔課堂（TronClass）學習管理系統所開發的輔助工具，幫助學生更方便地管理課程、查看作業與下載學習資源，讓你不再為繁瑣操作煩惱。
+很多線上學習平台（包括翱翔課堂）會監聽你的視窗焦點，當你切換到其他分頁或視窗時，影片會自動暫停、甚至記錄離開次數。
 
-> 🏫 適用對象：使用翱翔課堂平台的大學生與教育工作者
+**Stay Visible** 是一款 Chrome 擴充套件，透過攔截瀏覽器的 Visibility API，讓網頁永遠以為你還在這個分頁，解決上述問題。
 
----
+### 它做了什麼？
 
-## ✨ 主要功能
-
-| 功能 | 說明 |
-|------|------|
-| 📥 課程資源下載 | 一鍵批量下載課程投影片、影片與附件 |
-| 📋 作業追蹤 | 自動整理未繳作業清單並提醒截止日期 |
-| 🕐 簽到輔助 | 快速完成課堂簽到，避免遲到扣分 |
-| 📊 成績查詢 | 清楚呈現各科目成績與學分統計 |
-| 🔔 通知管理 | 整合課程公告，不再遺漏重要訊息 |
+| 攔截項目 | 說明 |
+|----------|------|
+| `document.hidden` | 永遠回傳 `false`（頁面不隱藏） |
+| `document.visibilityState` | 永遠回傳 `'visible'`（頁面可見） |
+| `visibilitychange` 事件 | 阻止觸發 |
+| `blur` 事件 | 阻止觸發 |
+| `pagehide` 事件 | 阻止觸發 |
 
 ---
 
-## 🖥️ 系統需求
+## 📦 安裝方式
 
-- 作業系統：Windows 10+ / macOS 12+ / Linux
-- Python **3.8** 以上
-- 有效的翱翔課堂帳號
+> Chrome Web Store 上架前，請使用**手動安裝（開發者模式）**。
 
----
-
-## 📦 安裝步驟
-
-### 步驟 1 — 複製專案
+### 步驟 1 — 下載專案
 
 ```bash
 git clone https://github.com/twwone/Tronclass.git
-cd Tronclass
 ```
 
-### 步驟 2 — 安裝相依套件
+或直接點右上角 **Code → Download ZIP** 下載後解壓縮。
 
-```bash
-pip install -r requirements.txt
+### 步驟 2 — 開啟 Chrome 擴充功能頁面
+
+在網址列輸入：
+
+```
+chrome://extensions
 ```
 
-### 步驟 3 — 設定帳號
+### 步驟 3 — 啟用開發者模式
 
-複製設定範本並填入你的資訊：
+開啟右上角的 **「開發人員模式」** 開關。
 
-```bash
-cp config.example.json config.json
-```
+![開發者模式示意](https://i.imgur.com/placeholder-devmode.png)
 
-開啟 `config.json`，填入帳號資料：
+### 步驟 4 — 載入擴充套件
 
-```json
-{
-  "username": "你的學號",
-  "password": "你的密碼",
-  "school_url": "https://your-school.tronclass.com.cn"
-}
-```
+點擊 **「載入未封裝項目」**，選擇剛才下載的 `chrome-extension/` 資料夾。
 
-> ⚠️ `config.json` 已加入 `.gitignore`，帳號密碼不會被上傳。
+完成後擴充套件列表中會出現 **Stay Visible**。
 
 ---
 
-## 🚀 使用說明
+## 🚀 使用方式
 
-### 啟動程式
-
-```bash
-python main.py
-```
-
-啟動後會出現互動選單，用數字鍵選擇功能：
+1. 進入翱翔課堂（或任何需要的網站）
+2. 點擊瀏覽器右上角的 **Stay Visible 圖示**
+3. 確認狀態顯示 **已啟用 ✅**
 
 ```
-╔══════════════════════════════╗
-║    🎓 Tronclass Helper       ║
-╠══════════════════════════════╣
-║  [1] 📥 下載課程資源          ║
-║  [2] 📋 查看待繳作業          ║
-║  [3] 🕐 課堂簽到              ║
-║  [4] 📊 查詢成績              ║
-║  [5] 🔔 查看最新公告          ║
-║  [Q] 離開                    ║
-╚══════════════════════════════╝
+┌─────────────────────┐
+│    Stay Visible     │
+│                     │
+│    已啟用 ✅         │
+│                     │
+│  ┌───────────────┐  │
+│  │   點我停用    │  │  ← 點擊切換開關
+│  └───────────────┘  │
+└─────────────────────┘
 ```
 
-### 常用指令
+| 狀態 | 說明 |
+|------|------|
+| ✅ 已啟用（綠色） | 網頁無法偵測你切換分頁 |
+| ❌ 已停用（紅色） | 恢復瀏覽器原始行為 |
 
-```bash
-# 下載所有課程資源
-python main.py download --all
+> 設定會自動記住，重新整理後依然有效。
 
-# 只下載指定課程
-python main.py download --course "資料結構"
+---
 
-# 查看未繳作業
-python main.py homework --pending
+## 📁 專案結構
 
-# 查詢成績
-python main.py grades
-
-# 顯示完整幫助
-python main.py --help
+```
+chrome-extension/
+├── manifest.json   # 擴充套件設定（Manifest v3）
+├── content.js      # 核心邏輯，攔截 Visibility API
+├── popup.html      # 點擊圖示後的彈出介面
+├── popup.js        # 介面控制邏輯
+└── icons/
+    ├── icon16.png
+    ├── icon48.png
+    └── icon128.png
 ```
 
 ---
 
-## ⚙️ 進階設定
+## 🔧 相容性
 
-`config.json` 支援以下進階選項：
-
-```json
-{
-  "username": "你的學號",
-  "password": "你的密碼",
-  "school_url": "https://your-school.tronclass.com.cn",
-  "download_path": "./downloads",
-  "auto_signin": false,
-  "notify_days_before": 3
-}
-```
-
-| 設定項目 | 說明 | 預設值 |
-|----------|------|--------|
-| `download_path` | 資源儲存路徑 | `./downloads` |
-| `auto_signin` | 啟動時自動簽到 | `false` |
-| `notify_days_before` | 作業到期提前幾天提醒 | `3` |
-
----
-
-## 🤝 如何貢獻
-
-歡迎任何形式的貢獻！
-
-1. **Fork** 此專案
-2. 建立功能分支：`git checkout -b feature/新功能名稱`
-3. 提交修改：`git commit -m 'Add: 新功能說明'`
-4. 推送分支：`git push origin feature/新功能名稱`
-5. 開啟 **Pull Request**
-
-遇到 Bug 或有功能建議，請至 [Issues](https://github.com/twwone/Tronclass/issues) 回報。
+| 瀏覽器 | 支援狀況 |
+|--------|----------|
+| Chrome 88+ | ✅ 完整支援 |
+| Edge（Chromium）| ✅ 完整支援 |
+| Firefox | ❌ 不支援（Manifest v3 差異） |
+| Safari | ❌ 不支援 |
 
 ---
 
 ## ⚠️ 免責聲明
 
-本工具僅供個人學習使用，請勿用於任何違反學校規定或平台服務條款的行為。使用本工具所產生的任何後果由使用者自行負責。
+本工具僅供個人學習與研究使用。使用前請確認是否符合所在學校的規範，因使用本工具所產生的任何後果由使用者自行承擔。
 
 ---
 
-## 📄 授權條款
+## 🤝 貢獻
 
-本專案採用 [MIT License](LICENSE) 授權，詳情請見 LICENSE 檔案。
+歡迎提交 Issue 或 Pull Request！
+
+1. Fork 此專案
+2. 建立分支：`git checkout -b feature/改進內容`
+3. 提交：`git commit -m 'Add: 說明'`
+4. 推送：`git push origin feature/改進內容`
+5. 開啟 Pull Request
+
+---
+
+## 📄 授權
+
+[MIT License](LICENSE) © [twwone](https://github.com/twwone)
 
 ---
 
 <div align="center">
 
-如果這個專案對你有幫助，請給個 ⭐ Star 支持一下！
-
-Made with ❤️ by [twwone](https://github.com/twwone)
+如果這個專案對你有幫助，請給個 ⭐ 支持！
 
 </div>
