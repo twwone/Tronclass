@@ -255,6 +255,12 @@
 <h1>Stay Visible — 實戰前回測</h1>
 <p class="subtitle">模擬 TronClass 考試的所有偵測情境，確認擴充套件正常攔截後再去考試</p>
 
+<!-- file:// 警告 -->
+<div id="file-warning" style="display:none;background:#7c2d12;border:1px solid #ef4444;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:14px;line-height:1.6;">
+  ⚠️ 你正在以 <code style="background:#450a0a;padding:2px 6px;border-radius:4px;">file://</code> 協議開啟此頁，Chrome 擴充套件預設無法注入本地檔案，所有事件攔截測試都會失敗。<br>
+  請前往 <strong>chrome://extensions</strong> → Stay Visible → 開啟「<strong>允許訪問文件 URL</strong>」後重新整理頁面。
+</div>
+
 <!-- 擴充套件狀態 -->
 <div id="ext-status">
   <div class="dot"></div>
@@ -492,13 +498,24 @@
       ? '✅ 通過：visibilityState = "visible"'
       : `❌ 失敗：visibilityState = "${vis}"`;
 
-    // 擴充套件整體狀態
-    const extActive = hidden === false && vis === 'visible' && focus === true;
+    // 擴充套件整體狀態：以 __sv_loaded 旗標判斷 content-main.js 是否注入
+    const injected = window.__sv_loaded === true;
     const statusEl = document.getElementById('ext-status');
-    statusEl.className = extActive ? 'active' : 'inactive';
-    document.getElementById('ext-text').textContent = extActive
-      ? '✅  Stay Visible 擴充套件已啟用，全面防護正常'
-      : '❌  擴充套件未偵測到或未完全啟用 — 請確認 popup 顯示「已啟用 ✅」';
+
+    if (location.protocol === 'file:') {
+      document.getElementById('file-warning').style.display = 'block';
+    }
+
+    if (injected) {
+      statusEl.className = 'active';
+      document.getElementById('ext-text').textContent = '✅  Stay Visible 擴充套件已注入，全面防護正常';
+    } else if (location.protocol === 'file:') {
+      statusEl.className = 'inactive';
+      document.getElementById('ext-text').textContent = '⚠️  file:// 頁面：請在擴充套件設定開啟「允許訪問文件 URL」';
+    } else {
+      statusEl.className = 'inactive';
+      document.getElementById('ext-text').textContent = '❌  擴充套件未注入 — 請確認已安裝並在 popup 中啟用';
+    }
   }
 
   // ── 事件監聽（模擬 TronClass 偵測）──────────────────────────
