@@ -53,6 +53,17 @@ ap();
     });
   });
 
+  // ── 偵測模式：記錄所有 JSON 回應供分析 ──────────────────────────────────
+  document.addEventListener('__sv_debug__', (e) => {
+    chrome.storage.local.get({ debugMode: false, debugLogs: [] }, ({ debugMode, debugLogs }) => {
+      if (!debugMode) return;
+      const { url, data, timestamp } = e.detail;
+      debugLogs.unshift({ url, data, timestamp });
+      if (debugLogs.length > 50) debugLogs.length = 50;
+      chrome.storage.local.set({ debugLogs });
+    });
+  });
+
   // ── document 屬性覆寫（document 為兩個 world 共用物件）────────────────
   const orig = {
     hidden:                Object.getOwnPropertyDescriptor(Document.prototype, 'hidden'),

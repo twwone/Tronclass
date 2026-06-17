@@ -82,3 +82,39 @@ clearBtn.addEventListener('click', () => {
   index = 0;
   renderAnswer();
 });
+
+// ── 偵測模式 ─────────────────────────────────────────────────────────────
+const debugToggle = document.getElementById('debugToggle');
+const debugBar    = document.getElementById('debugBar');
+const exportBtn   = document.getElementById('exportBtn');
+
+chrome.storage.local.get({ debugMode: false, debugLogs: [] }, ({ debugMode, debugLogs }) => {
+  debugToggle.checked = debugMode;
+  debugBar.classList.toggle('active', debugMode);
+  exportBtn.hidden = debugLogs.length === 0;
+});
+
+debugToggle.addEventListener('change', () => {
+  const on = debugToggle.checked;
+  chrome.storage.local.set({ debugMode: on, debugLogs: [] });
+  debugBar.classList.toggle('active', on);
+  exportBtn.hidden = true;
+});
+
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.debugLogs) {
+    exportBtn.hidden = (changes.debugLogs.newValue ?? []).length === 0;
+  }
+});
+
+exportBtn.addEventListener('click', () => {
+  chrome.storage.local.get({ debugLogs: [] }, ({ debugLogs }) => {
+    const blob = new Blob([JSON.stringify(debugLogs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tronclass-debug-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+});

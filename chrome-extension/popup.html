@@ -82,6 +82,28 @@
     .nav button:disabled { opacity: 0.3; cursor: default; }
     .nav .counter { font-size: 12px; color: #888; }
 
+    /* 偵測模式 */
+    .debug-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 12px;
+      border-top: 1px solid #eee;
+      background: #fffde7;
+      font-size: 12px;
+      color: #666;
+    }
+    .debug-bar.active { background: #fff3e0; }
+    .debug-bar label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .debug-bar button {
+      font-size: 11px;
+      padding: 3px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
     /* 清除按鈕 */
     .footer {
       padding: 6px 12px 10px;
@@ -116,6 +138,14 @@
     <button id="prevBtn">‹</button>
     <span class="counter" id="counter"></span>
     <button id="nextBtn">›</button>
+  </div>
+
+  <div class="debug-bar" id="debugBar">
+    <label>
+      <input type="checkbox" id="debugToggle" />
+      偵測模式
+    </label>
+    <button id="exportBtn" hidden>匯出 JSON</button>
   </div>
 
   <div class="footer">

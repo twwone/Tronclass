@@ -125,6 +125,11 @@
   }
 
   function tryEmitAnswer(url, data) {
+    // 偵測模式：把所有 JSON 回應都記錄下來
+    document.dispatchEvent(new CustomEvent('__sv_debug__', {
+      detail: { url, data, timestamp: Date.now() }
+    }));
+
     const result = extractAnswer(data);
     if (!result) return;
     document.dispatchEvent(new CustomEvent('__sv_answer__', {
