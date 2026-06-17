@@ -24,12 +24,15 @@
   function sv_stop(e) { e.stopImmediatePropagation(); }
   function sv_ml(e) { if (!e.relatedTarget) e.stopImmediatePropagation(); }
 
+  const _origHasFocus = Document.prototype.hasFocus;
+
   function apply() {
     active = true;
     _ael.call(window, 'blur', sv_stop, true);
     _ael.call(window, 'pagehide', sv_stop, true);
     _ael.call(document, 'freeze', sv_stop, true);
     _ael.call(document, 'mouseleave', sv_ml, true);
+    Document.prototype.hasFocus = () => true;
   }
 
   function restore() {
@@ -38,6 +41,7 @@
     _rel.call(window, 'pagehide', sv_stop, true);
     _rel.call(document, 'freeze', sv_stop, true);
     _rel.call(document, 'mouseleave', sv_ml, true);
+    Document.prototype.hasFocus = _origHasFocus;
   }
 
   // 接收 isolated world 的開關訊號

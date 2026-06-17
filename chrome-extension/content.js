@@ -16,8 +16,9 @@ EventTarget.prototype.addEventListener=function(t,f,o){
 };
 function ss(e){e.stopImmediatePropagation();}
 function sm(e){if(!e.relatedTarget)e.stopImmediatePropagation();}
-function ap(){on=true;_a.call(window,"blur",ss,true);_a.call(window,"pagehide",ss,true);_a.call(document,"freeze",ss,true);_a.call(document,"mouseleave",sm,true);}
-function rs(){on=false;_r.call(window,"blur",ss,true);_r.call(window,"pagehide",ss,true);_r.call(document,"freeze",ss,true);_r.call(document,"mouseleave",sm,true);}
+var _hf=Document.prototype.hasFocus;
+function ap(){on=true;_a.call(window,"blur",ss,true);_a.call(window,"pagehide",ss,true);_a.call(document,"freeze",ss,true);_a.call(document,"mouseleave",sm,true);Document.prototype.hasFocus=function(){return true;};}
+function rs(){on=false;_r.call(window,"blur",ss,true);_r.call(window,"pagehide",ss,true);_r.call(document,"freeze",ss,true);_r.call(document,"mouseleave",sm,true);Document.prototype.hasFocus=_hf;}
 _a.call(document,"__sv_toggle__",function(e){e.detail.enabled?ap():rs();});
 ap();
 })();`;
