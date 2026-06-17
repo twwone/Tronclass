@@ -46,41 +46,31 @@ ap();
   // ── 浮動答案面板（隱匿版）────────────────────────────────────────────────
   let overlayAnswers = [];
   let overlayIndex = 0;
-  let dotEl = null;      // 小點（平時顯示）
-  let panelEl = null;    // 展開面板
-  let panelVisible = false;  // 面板是否展開
-  let stealthMode = false;   // Alt+Z 完全隱藏時為 true
-
-  const DOT_STYLE = [
-    'position:fixed', 'bottom:12px', 'right:12px', 'z-index:2147483647',
-    'width:8px', 'height:8px', 'border-radius:50%',
-    'background:rgba(100,180,100,0.35)',
-    'cursor:pointer', 'transition:background 0.2s',
-  ].join(';');
-
-  const PANEL_STYLE = [
-    'position:fixed', 'bottom:28px', 'right:16px', 'z-index:2147483647',
-    'background:rgba(10,10,10,0.88)', 'color:#fff',
-    'padding:10px 13px', 'border-radius:10px',
-    'font-size:13px', 'max-width:310px', 'min-width:180px',
-    'font-family:sans-serif', 'line-height:1.6',
-    'box-shadow:0 4px 16px rgba(0,0,0,0.45)',
-    'user-select:none', 'display:none',
-  ].join(';');
+  let wrapEl = null;
+  let dotEl = null;
+  let panelEl = null;
+  let stealthMode = false;
+  let hideTimer = null;
 
   function buildOverlay() {
-    if (dotEl) return;
+    if (wrapEl) return;
 
-    // 小點
-    dotEl = document.createElement('div');
-    dotEl.id = '__sv_dot__';
-    dotEl.style.cssText = DOT_STYLE;
-    document.body.appendChild(dotEl);
+    // 外層容器：點和面板都在裡面，滑鼠在容器內任何位置都不縮
+    wrapEl = document.createElement('div');
+    wrapEl.style.cssText = [
+      'position:fixed', 'bottom:10px', 'right:10px', 'z-index:2147483647',
+      'display:flex', 'flex-direction:column', 'align-items:flex-end', 'gap:6px',
+    ].join(';');
 
-    // 展開面板
     panelEl = document.createElement('div');
-    panelEl.id = '__sv_panel__';
-    panelEl.style.cssText = PANEL_STYLE;
+    panelEl.style.cssText = [
+      'background:rgba(10,10,10,0.88)', 'color:#fff',
+      'padding:10px 13px', 'border-radius:10px',
+      'font-size:13px', 'max-width:310px', 'min-width:180px',
+      'font-family:sans-serif', 'line-height:1.6',
+      'box-shadow:0 4px 16px rgba(0,0,0,0.45)',
+      'user-select:none', 'display:none',
+    ].join(';');
     panelEl.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span style="font-size:10px;color:#888" id="__sv_counter__"></span>
@@ -93,19 +83,32 @@ ap();
       <div id="__sv_q__" style="font-size:11px;color:#999;margin-bottom:4px;max-height:55px;overflow-y:auto;display:none"></div>
       <div id="__sv_a__" style="font-size:15px;font-weight:bold;color:#6dff6d;word-break:break-all"></div>
     `;
-    document.body.appendChild(panelEl);
 
-    // 小點 hover 顯示面板
-    dotEl.addEventListener('mouseenter', () => { if (!stealthMode) showPanel(); });
-    panelEl.addEventListener('mouseleave', () => hidePanel());
-    panelEl.addEventListener('mouseenter', () => { /* 停在面板上不縮 */ });
-    dotEl.addEventListener('mouseleave', (e) => {
-      // 如果移到 panel 就不縮
-      if (e.relatedTarget === panelEl || panelEl.contains(e.relatedTarget)) return;
-      hidePanel();
+    dotEl = document.createElement('div');
+    dotEl.style.cssText = [
+      'width:8px', 'height:8px', 'border-radius:50%',
+      'background:rgba(100,180,100,0.35)', 'cursor:pointer',
+      'align-self:flex-end',
+    ].join(';');
+
+    wrapEl.appendChild(panelEl);
+    wrapEl.appendChild(dotEl);
+    document.body.appendChild(wrapEl);
+
+    // 滑鼠進入整個容器才展開，離開整個容器才縮（300ms 緩衝）
+    wrapEl.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimer);
+      if (!stealthMode && overlayAnswers.length) showPanel();
+    });
+    wrapEl.addEventListener('mouseleave', () => {
+      hideTimer = setTimeout(() => hidePanel(), 300);
     });
 
-    panelEl.querySelector('#__sv_hide__').addEventListener('click', () => hidePanel());
+    panelEl.querySelector('#__sv_hide__').addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearTimeout(hideTimer);
+      hidePanel();
+    });
     panelEl.querySelector('#__sv_prev__').addEventListener('click', () => {
       if (overlayIndex < overlayAnswers.length - 1) { overlayIndex++; renderPanel(); }
     });
@@ -113,19 +116,13 @@ ap();
       if (overlayIndex > 0) { overlayIndex--; renderPanel(); }
     });
 
-    // Ctrl+`：在「完全隱藏」和「顯示小點」之間切換
+    // Ctrl+`：完全隱藏 / 恢復
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === '`') {
         e.preventDefault();
-        if (stealthMode) {
-          stealthMode = false;
-          dotEl.style.display = 'block';
-        } else {
-          stealthMode = true;
-          dotEl.style.display = 'none';
-          panelEl.style.display = 'none';
-          panelVisible = false;
-        }
+        stealthMode = !stealthMode;
+        wrapEl.style.display = stealthMode ? 'none' : 'flex';
+        if (stealthMode) { clearTimeout(hideTimer); hidePanel(); }
       }
     });
   }
@@ -134,13 +131,11 @@ ap();
     if (!panelEl || !overlayAnswers.length) return;
     renderPanel();
     panelEl.style.display = 'block';
-    panelVisible = true;
   }
 
   function hidePanel() {
     if (!panelEl) return;
     panelEl.style.display = 'none';
-    panelVisible = false;
   }
 
   function renderPanel() {
@@ -159,8 +154,8 @@ ap();
   function syncOverlay(answers) {
     overlayAnswers = answers;
     overlayIndex = 0;
-    if (!dotEl && answers.length) buildOverlay();
-    if (dotEl) dotEl.style.display = stealthMode ? 'none' : 'block';
+    if (!wrapEl && answers.length) buildOverlay();
+    if (wrapEl) wrapEl.style.display = stealthMode ? 'none' : 'flex';
   }
 
   function syncOverlayFromStorage() {
