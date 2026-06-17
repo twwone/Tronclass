@@ -1,28 +1,49 @@
-// MAIN world — 處理 window 層級事件
-// 與 content.js（isolated world）透過 document CustomEvent 溝通
+// MAIN world — 攔截 window 層級事件 + 覆寫 addEventListener 防止偵測器被掛載
 (() => {
-  function stopEvent(e) { e.stopImmediatePropagation(); }
-  function stopMouseLeave(e) { if (!e.relatedTarget) e.stopImmediatePropagation(); }
+  if (window.__sv_loaded) return;
+  window.__sv_loaded = true;
+
+  const WIN_BLOCK = new Set(['blur', 'pagehide', 'freeze']);
+  const DOC_BLOCK = new Set(['visibilitychange', 'webkitvisibilitychange', 'mozvisibilitychange']);
+
+  let active = true;
+
+  // 保存原始方法
+  const _ael = EventTarget.prototype.addEventListener;
+  const _rel = EventTarget.prototype.removeEventListener;
+
+  // 覆寫 addEventListener：讓偵測相關事件完全無法被掛載
+  EventTarget.prototype.addEventListener = function (type, fn, opts) {
+    if (active) {
+      if (this === window && WIN_BLOCK.has(type)) return;
+      if (this === document && DOC_BLOCK.has(type)) return;
+    }
+    return _ael.call(this, type, fn, opts);
+  };
+
+  function sv_stop(e) { e.stopImmediatePropagation(); }
+  function sv_ml(e) { if (!e.relatedTarget) e.stopImmediatePropagation(); }
 
   function apply() {
-    window.addEventListener('blur',         stopEvent,       true);
-    window.addEventListener('pagehide',     stopEvent,       true);
-    document.addEventListener('freeze',     stopEvent,       true);
-    document.addEventListener('mouseleave', stopMouseLeave,  true);
+    active = true;
+    _ael.call(window, 'blur', sv_stop, true);
+    _ael.call(window, 'pagehide', sv_stop, true);
+    _ael.call(document, 'freeze', sv_stop, true);
+    _ael.call(document, 'mouseleave', sv_ml, true);
   }
 
   function restore() {
-    window.removeEventListener('blur',         stopEvent,       true);
-    window.removeEventListener('pagehide',     stopEvent,       true);
-    document.removeEventListener('freeze',     stopEvent,       true);
-    document.removeEventListener('mouseleave', stopMouseLeave,  true);
+    active = false;
+    _rel.call(window, 'blur', sv_stop, true);
+    _rel.call(window, 'pagehide', sv_stop, true);
+    _rel.call(document, 'freeze', sv_stop, true);
+    _rel.call(document, 'mouseleave', sv_ml, true);
   }
 
   // 接收 isolated world 的開關訊號
-  document.addEventListener('__sv_toggle__', (e) => {
+  _ael.call(document, '__sv_toggle__', (e) => {
     e.detail.enabled ? apply() : restore();
   });
 
-  // 預設啟用，等 isolated world 讀取 storage 後若需要關閉會發訊號
   apply();
 })();

@@ -1,11 +1,36 @@
-// ISOLATED world — 處理 document 屬性覆寫、document 事件、chrome.storage
+// ISOLATED world — document 屬性覆寫 + chrome.storage + 注入 MAIN world 備援腳本
 (() => {
+  // ── 注入備援腳本到 MAIN world（透過 <script> 標籤，確保在頁面 JS 之前執行）──
+  // 若 "world":"MAIN" 的 content-main.js 已執行則跳過（靠 window.__sv_loaded 旗標判斷）
+  try {
+    const s = document.createElement('script');
+    s.textContent = `(function(){
+if(window.__sv_loaded)return;
+window.__sv_loaded=true;
+var WB=["blur","pagehide","freeze"],DB=["visibilitychange","webkitvisibilitychange","mozvisibilitychange"];
+var _a=EventTarget.prototype.addEventListener,_r=EventTarget.prototype.removeEventListener;
+var on=true;
+EventTarget.prototype.addEventListener=function(t,f,o){
+  if(on&&((this===window&&WB.indexOf(t)>=0)||(this===document&&DB.indexOf(t)>=0)))return;
+  return _a.call(this,t,f,o);
+};
+function ss(e){e.stopImmediatePropagation();}
+function sm(e){if(!e.relatedTarget)e.stopImmediatePropagation();}
+function ap(){on=true;_a.call(window,"blur",ss,true);_a.call(window,"pagehide",ss,true);_a.call(document,"freeze",ss,true);_a.call(document,"mouseleave",sm,true);}
+function rs(){on=false;_r.call(window,"blur",ss,true);_r.call(window,"pagehide",ss,true);_r.call(document,"freeze",ss,true);_r.call(document,"mouseleave",sm,true);}
+_a.call(document,"__sv_toggle__",function(e){e.detail.enabled?ap():rs();});
+ap();
+})();`;
+    (document.documentElement || document.head).appendChild(s);
+    s.remove();
+  } catch (_) { /* CSP 擋住 inline script，靠 content-main.js 處理 */ }
+
+  // ── chrome.storage 狀態管理 ──────────────────────────────────────────
   let enabled = true;
 
   chrome.storage.local.get('enabled', (result) => {
     enabled = result.enabled !== false;
     enabled ? apply() : restore();
-    // 同步狀態給 MAIN world（content-main.js）
     document.dispatchEvent(new CustomEvent('__sv_toggle__', { detail: { enabled } }));
   });
 
@@ -17,7 +42,7 @@
     }
   });
 
-  // 儲存原始描述符，停用時還原
+  // ── document 屬性覆寫（document 為兩個 world 共用物件）────────────────
   const orig = {
     hidden:                Object.getOwnPropertyDescriptor(Document.prototype, 'hidden'),
     visibilityState:       Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState'),
@@ -31,18 +56,14 @@
   function stopEvent(e) { e.stopImmediatePropagation(); }
 
   function apply() {
-    // ── document 屬性覆寫（document 為 isolated/main world 共用物件）──
     Object.defineProperty(document, 'hidden',                { get: () => false,     configurable: true });
     Object.defineProperty(document, 'visibilityState',       { get: () => 'visible', configurable: true });
     Object.defineProperty(document, 'webkitHidden',          { get: () => false,     configurable: true });
     Object.defineProperty(document, 'mozHidden',             { get: () => false,     configurable: true });
     Object.defineProperty(document, 'webkitVisibilityState', { get: () => 'visible', configurable: true });
     Object.defineProperty(document, 'mozVisibilityState',    { get: () => 'visible', configurable: true });
-
-    // hasFocus() 永遠回傳 true
     Document.prototype.hasFocus = () => true;
 
-    // ── document 事件（在 isolated world 攔截即可生效）────────────────
     document.addEventListener('visibilitychange',       stopEvent, true);
     document.addEventListener('webkitvisibilitychange', stopEvent, true);
     document.addEventListener('mozvisibilitychange',    stopEvent, true);
