@@ -53,6 +53,17 @@ ap();
     });
   });
 
+  // ── 一次收到整份考卷的答案 ───────────────────────────────────────────────
+  document.addEventListener('__sv_answers_batch__', (e) => {
+    const { batch, url, timestamp } = e.detail;
+    chrome.storage.local.get({ answers: [] }, ({ answers }) => {
+      const entries = batch.map(b => ({ ...b, url, timestamp }));
+      answers.unshift(...entries);
+      if (answers.length > 200) answers.length = 200;
+      chrome.storage.local.set({ answers });
+    });
+  });
+
   // ── 偵測模式：記錄所有 JSON 回應供分析 ──────────────────────────────────
   document.addEventListener('__sv_debug__', (e) => {
     chrome.storage.local.get({ debugMode: false, debugLogs: [] }, ({ debugMode, debugLogs }) => {

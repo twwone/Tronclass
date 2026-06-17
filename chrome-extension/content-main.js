@@ -130,10 +130,37 @@
       detail: { url, data, timestamp: Date.now() }
     }));
 
+    // Tronclass 送出後的成績單：/api/exams/{id}/submissions/{id}
+    if (/\/api\/exams\/\d+\/submissions\/\d+/.test(url)) {
+      const subjects = data?.subjects_data?.subjects;
+      if (Array.isArray(subjects) && subjects.length) {
+        const batch = subjects.map(s => {
+          const correctOpt = (s.options || []).find(o => o.is_answer === true);
+          return {
+            question: stripHtml(s.description || ''),
+            answer:   stripHtml(correctOpt?.content || s.answer_explanation || ''),
+          };
+        }).filter(e => e.answer);
+
+        if (batch.length) {
+          document.dispatchEvent(new CustomEvent('__sv_answers_batch__', {
+            detail: { batch, url, timestamp: Date.now() }
+          }));
+          return;
+        }
+      }
+    }
+
     const result = extractAnswer(data);
     if (!result) return;
     document.dispatchEvent(new CustomEvent('__sv_answer__', {
       detail: { url, ...result, timestamp: Date.now() }
     }));
+  }
+
+  function stripHtml(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return d.textContent.trim();
   }
 })();
